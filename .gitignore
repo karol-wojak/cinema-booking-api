@@ -1,0 +1,12 @@
+# Virtual environment
+.venv/
+
+# SQLite database file
+*.db
+
+# Python-specific files
+__pycache__/
+*.pyc
+
+# Uvicorn log files
+.uvicorn.log

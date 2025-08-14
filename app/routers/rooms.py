@@ -88,14 +88,85 @@ def delete_room(room_id: int, db: Session = Depends(get_db)):
     db.commit()
     return {"message": "Room deleted successfully"}
 
+# Endpoint to get a list of all movies
+@router.get("/movies/", response_model=list[schemas.Movie])
+def get_all_movies(db: Session = Depends(get_db)):
+    movies = db.query(models.Movie).all()
+    return movies
+
+# Endpoint to get a single movie by ID
+@router.get("/movies/{movie_id}", response_model=schemas.Movie)
+def get_movie(movie_id: int, db: Session = Depends(get_db)):
+    movie = db.query(models.Movie).filter(models.Movie.id == movie_id).first()
+    if not movie:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Movie not found"
+        )
+    return movie
+
 # Endpoint to create a new movie
 @router.post("/movies/", response_model=schemas.Movie, status_code=status.HTTP_201_CREATED)
 def create_movie(movie: schemas.MovieCreate, db: Session = Depends(get_db)):
+    # Check if a movie with the same title already exists
+    existing_movie = db.query(models.Movie).filter(models.Movie.title == movie.title).first()
+    if existing_movie:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="A movie with this title already exists"
+        )
+
     db_movie = models.Movie(**movie.model_dump())
     db.add(db_movie)
     db.commit()
     db.refresh(db_movie)
     return db_movie
+
+# Endpoint to update a movie
+@router.put("/movies/{movie_id}", response_model=schemas.Movie)
+def update_movie(movie_id: int, movie: schemas.MovieCreate, db: Session = Depends(get_db)):
+    db_movie = db.query(models.Movie).filter(models.Movie.id == movie_id).first()
+    if not db_movie:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Movie not found"
+        )
+
+    # Check if the movie has any schedules before updating
+    schedules = db.query(models.Schedule).filter(models.Schedule.movie_id == movie_id).all()
+    if schedules:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Cannot update movie, it has existing schedules"
+        )
+
+    for key, value in movie.model_dump().items():
+        setattr(db_movie, key, value)
+    db.commit()
+    db.refresh(db_movie)
+    return db_movie
+
+# Endpoint to delete a movie
+@router.delete("/movies/{movie_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_movie(movie_id: int, db: Session = Depends(get_db)):
+    db_movie = db.query(models.Movie).filter(models.Movie.id == movie_id).first()
+    if not db_movie:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Movie not found"
+        )
+
+    # Check if the movie has any schedules before deleting
+    schedules = db.query(models.Schedule).filter(models.Schedule.movie_id == movie_id).all()
+    if schedules:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Cannot delete movie, it has existing schedules"
+        )
+
+    db.delete(db_movie)
+    db.commit()
+    return {"message": "Movie deleted successfully"}
 
 # Endpoint to create a new schedule for a room and movie
 @router.post("/{room_id}/schedules/", response_model=schemas.Schedule, status_code=status.HTTP_201_CREATED)

@@ -14,6 +14,17 @@ def get_all_rooms(db: Session = Depends(get_db)):
     rooms = db.query(models.Room).all()
     return rooms
 
+# Endpoint to get a single room by ID
+@router.get("/{room_id}", response_model=schemas.Room)
+def get_room(room_id: int, db: Session = Depends(get_db)):
+    room = db.query(models.Room).filter(models.Room.id == room_id).first()
+    if not room:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Room not found"
+        )
+    return room
+
 # Endpoint to create a new room
 @router.post("/", response_model=schemas.Room, status_code=status.HTTP_201_CREATED)
 def create_room(room: schemas.RoomCreate, db: Session = Depends(get_db)):
@@ -30,6 +41,52 @@ def create_room(room: schemas.RoomCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(db_room)
     return db_room
+
+# Endpoint to update a room
+@router.put("/{room_id}", response_model=schemas.Room)
+def update_room(room_id: int, room: schemas.RoomCreate, db: Session = Depends(get_db)):
+    db_room = db.query(models.Room).filter(models.Room.id == room_id).first()
+    if not db_room:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Room not found"
+        )
+    
+    # Check if the room has any schedules before updating
+    schedules = db.query(models.Schedule).filter(models.Schedule.room_id == room_id).all()
+    if schedules:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Cannot update room, it has existing schedules"
+        )
+    
+    for key, value in room.model_dump().items():
+        setattr(db_room, key, value)
+    db.commit()
+    db.refresh(db_room)
+    return db_room
+
+# Endpoint to delete a room
+@router.delete("/{room_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_room(room_id: int, db: Session = Depends(get_db)):
+    db_room = db.query(models.Room).filter(models.Room.id == room_id).first()
+    if not db_room:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Room not found"
+        )
+    
+    # Check if the room has any schedules before deleting
+    schedules = db.query(models.Schedule).filter(models.Schedule.room_id == room_id).all()
+    if schedules:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Cannot delete room, it has existing schedules"
+        )
+
+    db.delete(db_room)
+    db.commit()
+    return {"message": "Room deleted successfully"}
 
 # Endpoint to create a new movie
 @router.post("/movies/", response_model=schemas.Movie, status_code=status.HTTP_201_CREATED)

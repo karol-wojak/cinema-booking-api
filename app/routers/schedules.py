@@ -1,7 +1,7 @@
 # app/routers/schedules.py
 
 from fastapi import APIRouter, Depends, HTTPException, status, Path
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from .. import schemas, models
 from ..database import get_db
 
@@ -62,11 +62,23 @@ def create_schedule_for_room(
     "/{room_id}/schedules/",
     response_model=list[schemas.Schedule],
     summary="Get schedules for a room",
-    description="Retrieve a list of all schedules for a given room. Returns an empty list if no schedules are found."
+    description="Retrieve a list of all schedules for a given room. Returns a 404 error if the room does not exist, or an empty list if the room has no schedules."
 )
 def get_schedules_for_room(
     room_id: int = Path(..., description="The unique ID of the room to retrieve schedules for."),
     db: Session = Depends(get_db)
 ):
-    schedules = db.query(models.Schedule).filter(models.Schedule.room_id == room_id).all()
+    # First, check if the room exists
+    room = db.query(models.Room).filter(models.Room.id == room_id).first()
+    if not room:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Room not found"
+        )
+    
+    # Then, retrieve schedules with an optimized query to fetch movie data
+    schedules = db.query(models.Schedule).options(joinedload(models.Schedule.movie)).filter(
+        models.Schedule.room_id == room_id
+    ).all()
+    
     return schedules

@@ -10,7 +10,11 @@ router = APIRouter(
 )
 
 # Endpoint to get the seating layout and availability for a specific schedule
-@router.get("/{schedule_id}/seats")
+@router.get(
+    "/{schedule_id}/seats",
+    summary="Get seating availability",
+    description="Retrieve the seating layout for a given schedule, showing which seats are available or booked."
+)
 def get_available_seats(schedule_id: int, db: Session = Depends(get_db)):
     schedule = db.query(models.Schedule).filter(models.Schedule.id == schedule_id).first()
     if not schedule:
@@ -46,7 +50,13 @@ def get_available_seats(schedule_id: int, db: Session = Depends(get_db)):
     }
 
 # Endpoint to create a new booking
-@router.post("/", response_model=schemas.Booking, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/",
+    response_model=schemas.Booking,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create a new booking",
+    description="Books a specific seat for a movie schedule. Validates that the seat is available and exists within the room's dimensions."
+)
 def create_booking(booking: schemas.BookingCreate, db: Session = Depends(get_db)):
     schedule = db.query(models.Schedule).filter(models.Schedule.id == booking.schedule_id).first()
     if not schedule:

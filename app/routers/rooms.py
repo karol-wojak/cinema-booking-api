@@ -9,13 +9,23 @@ router = APIRouter(
 )
 
 # Endpoint to get a list of all rooms
-@router.get("/", response_model=list[schemas.Room])
+@router.get(
+    "/",
+    response_model=list[schemas.Room],
+    summary="Get all rooms",
+    description="Retrieve a list of all cinema rooms and their details."
+)
 def get_all_rooms(db: Session = Depends(get_db)):
     rooms = db.query(models.Room).all()
     return rooms
 
 # Endpoint to get a single room by ID
-@router.get("/{room_id}", response_model=schemas.Room)
+@router.get(
+    "/{room_id}",
+    response_model=schemas.Room,
+    summary="Get a single room",
+    description="Retrieve a single cinema room by its unique ID."
+)
 def get_room(room_id: int, db: Session = Depends(get_db)):
     room = db.query(models.Room).filter(models.Room.id == room_id).first()
     if not room:
@@ -26,7 +36,13 @@ def get_room(room_id: int, db: Session = Depends(get_db)):
     return room
 
 # Endpoint to create a new room
-@router.post("/", response_model=schemas.Room, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/",
+    response_model=schemas.Room,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create a new room",
+    description="Creates a new cinema room with a unique name and seating dimensions."
+)
 def create_room(room: schemas.RoomCreate, db: Session = Depends(get_db)):
     # Check if a room with the same name already exists
     existing_room = db.query(models.Room).filter(models.Room.name == room.name).first()
@@ -43,7 +59,12 @@ def create_room(room: schemas.RoomCreate, db: Session = Depends(get_db)):
     return db_room
 
 # Endpoint to update a room
-@router.put("/{room_id}", response_model=schemas.Room)
+@router.put(
+    "/{room_id}",
+    response_model=schemas.Room,
+    summary="Update a room",
+    description="Updates an existing room's details, such as name and seating capacity."
+)
 def update_room(room_id: int, room: schemas.RoomCreate, db: Session = Depends(get_db)):
     db_room = db.query(models.Room).filter(models.Room.id == room_id).first()
     if not db_room:
@@ -67,7 +88,12 @@ def update_room(room_id: int, room: schemas.RoomCreate, db: Session = Depends(ge
     return db_room
 
 # Endpoint to delete a room
-@router.delete("/{room_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/{room_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete a room",
+    description="Deletes a room by its ID, but only if it has no existing schedules."
+)
 def delete_room(room_id: int, db: Session = Depends(get_db)):
     db_room = db.query(models.Room).filter(models.Room.id == room_id).first()
     if not db_room:
@@ -89,13 +115,23 @@ def delete_room(room_id: int, db: Session = Depends(get_db)):
     return {"message": "Room deleted successfully"}
 
 # Endpoint to get a list of all movies
-@router.get("/movies/", response_model=list[schemas.Movie])
+@router.get(
+    "/movies/",
+    response_model=list[schemas.Movie],
+    summary="Get all movies",
+    description="Retrieve a list of all movies in the database."
+)
 def get_all_movies(db: Session = Depends(get_db)):
     movies = db.query(models.Movie).all()
     return movies
 
 # Endpoint to get a single movie by ID
-@router.get("/movies/{movie_id}", response_model=schemas.Movie)
+@router.get(
+    "/movies/{movie_id}",
+    response_model=schemas.Movie,
+    summary="Get a single movie",
+    description="Retrieve a single movie by its unique ID."
+)
 def get_movie(movie_id: int, db: Session = Depends(get_db)):
     movie = db.query(models.Movie).filter(models.Movie.id == movie_id).first()
     if not movie:
@@ -106,7 +142,13 @@ def get_movie(movie_id: int, db: Session = Depends(get_db)):
     return movie
 
 # Endpoint to create a new movie
-@router.post("/movies/", response_model=schemas.Movie, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/movies/",
+    response_model=schemas.Movie,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create a new movie",
+    description="Creates a new movie with a unique title and a poster URL."
+)
 def create_movie(movie: schemas.MovieCreate, db: Session = Depends(get_db)):
     # Check if a movie with the same title already exists
     existing_movie = db.query(models.Movie).filter(models.Movie.title == movie.title).first()
@@ -123,7 +165,12 @@ def create_movie(movie: schemas.MovieCreate, db: Session = Depends(get_db)):
     return db_movie
 
 # Endpoint to update a movie
-@router.put("/movies/{movie_id}", response_model=schemas.Movie)
+@router.put(
+    "/movies/{movie_id}",
+    response_model=schemas.Movie,
+    summary="Update a movie",
+    description="Updates an existing movie's details."
+)
 def update_movie(movie_id: int, movie: schemas.MovieCreate, db: Session = Depends(get_db)):
     db_movie = db.query(models.Movie).filter(models.Movie.id == movie_id).first()
     if not db_movie:
@@ -147,7 +194,12 @@ def update_movie(movie_id: int, movie: schemas.MovieCreate, db: Session = Depend
     return db_movie
 
 # Endpoint to delete a movie
-@router.delete("/movies/{movie_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/movies/{movie_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete a movie",
+    description="Deletes a movie by its ID, but only if it has no existing schedules."
+)
 def delete_movie(movie_id: int, db: Session = Depends(get_db)):
     db_movie = db.query(models.Movie).filter(models.Movie.id == movie_id).first()
     if not db_movie:
@@ -169,7 +221,13 @@ def delete_movie(movie_id: int, db: Session = Depends(get_db)):
     return {"message": "Movie deleted successfully"}
 
 # Endpoint to create a new schedule for a room and movie
-@router.post("/{room_id}/schedules/", response_model=schemas.Schedule, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/{room_id}/schedules/",
+    response_model=schemas.Schedule,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create a new schedule",
+    description="Creates a new movie schedule for a specific room and time."
+)
 def create_schedule_for_room(room_id: int, schedule: schemas.ScheduleCreate, db: Session = Depends(get_db)):
     # Check if the room exists
     room = db.query(models.Room).filter(models.Room.id == room_id).first()
@@ -206,7 +264,12 @@ def create_schedule_for_room(room_id: int, schedule: schemas.ScheduleCreate, db:
     return db_schedule
 
 # Endpoint to get a list of all schedules
-@router.get("/{room_id}/schedules/", response_model=list[schemas.Schedule])
+@router.get(
+    "/{room_id}/schedules/",
+    response_model=list[schemas.Schedule],
+    summary="Get schedules for a room",
+    description="Retrieve a list of all schedules for a given room."
+)
 def get_schedules_for_room(room_id: int, db: Session = Depends(get_db)):
     schedules = db.query(models.Schedule).filter(models.Schedule.room_id == room_id).all()
     return schedules

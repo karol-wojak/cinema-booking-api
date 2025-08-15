@@ -4,20 +4,20 @@ from typing import List
 
 # Base Schemas
 class RoomBase(BaseModel):
-    name: str
-    rows: int = Field(..., gt=0) # Ensures value is greater than 0
-    seats_per_row: int = Field(..., gt=0) # Ensures value is greater than 0
+    name: str = Field(..., example="Room 1")
+    rows: int = Field(..., gt=0, example=10)
+    seats_per_row: int = Field(..., gt=0, example=15)
 
 class MovieBase(BaseModel):
-    title: str
-    poster: str
+    title: str = Field(..., example="The Matrix")
+    poster: str = Field(..., example="https://example.com/matrix.jpg")
 
 class ScheduleBase(BaseModel):
-    start_time: datetime
+    start_time: datetime = Field(..., example="2025-08-15T10:00:00")
 
 class BookingBase(BaseModel):
-    row: int
-    seat: int
+    row: int = Field(..., example=5)
+    seat: int = Field(..., example=5)
 
 # Schemas for Creating objects (requests)
 class RoomCreate(RoomBase):
@@ -27,44 +27,37 @@ class MovieCreate(MovieBase):
     pass
 
 class ScheduleCreate(ScheduleBase):
-    movie_id: int
+    movie_id: int = Field(..., example=1)
 
 class BookingCreate(BookingBase):
-    schedule_id: int
+    schedule_id: int = Field(..., example=1)
 
 # Schemas for Reading objects (responses)
 class Room(RoomBase):
-    id: int
-    # schedules: List['Schedule'] = []
+    id: int = Field(..., example=1)
 
     class Config:
         from_attributes = True
 
 class Movie(MovieBase):
-    id: int
+    id: int = Field(..., example=1)
 
     class Config:
         from_attributes = True
 
 class Booking(BookingBase):
-    id: int
-    schedule_id: int
-    timestamp: datetime
+    id: int = Field(..., example=1)
+    schedule_id: int = Field(..., example=1)
+    timestamp: datetime = Field(..., example="2025-08-15T10:30:00")
     
     class Config:
         from_attributes = True
 
 class Schedule(ScheduleBase):
-    id: int
-    room_id: int
-    movie_id: int
-    # room: Room
-    # movie: Movie
-    bookings: List['Booking'] = []
-
+    id: int = Field(..., example=1)
+    room_id: int = Field(..., example=1)
+    movie_id: int = Field(..., example=1)
+    
     class Config:
         from_attributes = True
-
-# Call model_rebuild() after all related schemas are defined
-# Room.model_rebuild()
-# Schedule.model_rebuild()
+        

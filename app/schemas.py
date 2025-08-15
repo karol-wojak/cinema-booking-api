@@ -45,7 +45,7 @@ class Movie(MovieBase):
 class Schedule(ScheduleBase):
     id: int = Field(..., example=1)
     room_id: int = Field(..., example=1)
-    movie_id: int = Field(..., example=1)
+    # movie_id: int = Field(..., example=1)
     movie: Movie
     
     model_config = ConfigDict(from_attributes=True)

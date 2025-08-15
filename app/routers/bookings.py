@@ -69,7 +69,7 @@ def get_available_seats_by_movie_and_room(
 # Endpoint to get the seating layout and availability for a specific schedule
 @router.get(
     "/{schedule_id}/seats",
-    summary="Get seating availability",
+    summary="Get seating availability for a specific schedule",
     description="Retrieve the seating layout for a given schedule, showing which seats are available or booked. This endpoint provides a detailed map of the room, including row and seat numbers, and their current booking status."
 )
 def get_available_seats(
@@ -109,13 +109,13 @@ def get_available_seats(
         "seating_layout": seating_layout
     }
 
-# Endpoint to create a new booking
+# Endpoint to create a new booking using a schedule ID
 @router.post(
     "/",
     response_model=schemas.Booking,
     status_code=status.HTTP_201_CREATED,
-    summary="Create a new booking",
-    description="Books a specific seat for a movie schedule. Validates that the seat is available, exists within the room's dimensions, and that the schedule is valid."
+    summary="Create a new booking by schedule ID",
+    description="Books a specific seat for a movie schedule. Validates that the seat is available and exists within the room's dimensions."
 )
 def create_booking(booking: schemas.BookingCreate, db: Session = Depends(get_db)):
     schedule = db.query(models.Schedule).filter(models.Schedule.id == booking.schedule_id).first()
@@ -141,6 +141,62 @@ def create_booking(booking: schemas.BookingCreate, db: Session = Depends(get_db)
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Seat is already booked")
 
     db_booking = models.Booking(**booking.model_dump(), timestamp=datetime.now())
+    db.add(db_booking)
+    db.commit()
+    db.refresh(db_booking)
+    return db_booking
+
+# Endpoint to create a booking using movie ID and room ID
+@router.post(
+    "/movie/{movie_id}/room/{room_id}/",
+    response_model=schemas.Booking,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create a new booking by movie and room",
+    description="Books a specific seat for a movie in a room. First finds the corresponding schedule, then validates and persists the booking."
+)
+def create_booking_by_movie_and_room(
+    booking: schemas.BookingBase,
+    movie_id: int = Path(..., description="The unique ID of the movie."),
+    room_id: int = Path(..., description="The unique ID of the room."),
+    db: Session = Depends(get_db)
+):
+    # Find the schedule for the given movie and room
+    schedule = db.query(models.Schedule).filter(
+        models.Schedule.movie_id == movie_id,
+        models.Schedule.room_id == room_id
+    ).first()
+
+    if not schedule:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Schedule not found for this movie and room combination"
+        )
+
+    # Use the schedule ID to check for seat validity and booking
+    room = db.query(models.Room).filter(models.Room.id == room_id).first()
+    if not room:
+        raise HTTPException(status_code=404, detail="Room not found")
+
+    if not (1 <= booking.row <= room.rows and 1 <= booking.seat <= room.seats_per_row):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid seat for this room")
+
+    existing_booking = db.query(models.Booking).filter(
+        models.Booking.schedule_id == schedule.id,
+        models.Booking.row == booking.row,
+        models.Booking.seat == booking.seat
+    ).first()
+
+    if existing_booking:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Seat is already booked")
+    
+    # Create the booking using the found schedule ID
+    db_booking = models.Booking(
+        schedule_id=schedule.id,
+        row=booking.row,
+        seat=booking.seat,
+        timestamp=datetime.now()
+    )
+
     db.add(db_booking)
     db.commit()
     db.refresh(db_booking)

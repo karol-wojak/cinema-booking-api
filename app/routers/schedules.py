@@ -10,16 +10,16 @@ router = APIRouter(
     tags=["schedules"],
 )
 
-# Endpoint to create a new schedule for a room and movie
+# Endpoint to create a new schedule for a room
 @router.post(
-    "/{room_id}/schedules/",
+    "/rooms/{room_id}",
     response_model=schemas.Schedule,
     status_code=status.HTTP_201_CREATED,
-    summary="Create a new schedule",
-    description="Creates a new movie schedule for a specific room and time. Validates that the room and movie exist and that no other schedule conflicts with the new one."
+    summary="Create a new schedule for a room",
+    description="Creates a new movie schedule for a specific room. The room ID is taken from the URL, while the movie ID, date, and time are provided in the request body."
 )
 def create_schedule_for_room(
-    schedule: schemas.ScheduleCreate,
+    schedule: schemas.ScheduleCreateInRoom,
     room_id: int = Path(..., description="The unique ID of the room for which the schedule will be created."),
     db: Session = Depends(get_db)
 ):
@@ -39,27 +39,34 @@ def create_schedule_for_room(
             detail="Movie not found"
         )
     
-    # Check if a schedule with the same movie and start time already exists in this room
+    # Check for schedule conflicts
     existing_schedule = db.query(models.Schedule).filter(
         models.Schedule.room_id == room_id,
-        models.Schedule.movie_id == schedule.movie_id,
+        models.Schedule.show_date == schedule.show_date,
         models.Schedule.start_time == schedule.start_time
     ).first()
     if existing_schedule:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="This movie is already scheduled for this room at the specified time"
+            detail="A schedule for this room, date, and time already exists."
         )
 
-    db_schedule = models.Schedule(**schedule.model_dump(), room_id=room_id)
+    # Manually create the Schedule object to ensure the correct Python time object is used
+    db_schedule = models.Schedule(
+        room_id=room_id,
+        movie_id=schedule.movie_id,
+        show_date=schedule.show_date,
+        start_time=schedule.start_time
+    )
+    
     db.add(db_schedule)
     db.commit()
     db.refresh(db_schedule)
     return db_schedule
 
-# Endpoint to get a list of all schedules
+# Endpoint to get a list of all schedules for a specific room
 @router.get(
-    "/{room_id}/schedules/",
+    "/rooms/{room_id}",
     response_model=list[schemas.Schedule],
     summary="Get schedules for a room",
     description="Retrieve a list of all schedules for a given room. Returns a 404 error if the room does not exist, or an empty list if the room has no schedules."

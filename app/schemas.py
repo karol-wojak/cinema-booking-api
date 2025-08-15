@@ -1,9 +1,9 @@
 # app/schemas.py
 
 from __future__ import annotations
-from pydantic import BaseModel, Field, ConfigDict
-from datetime import datetime
-from typing import List, Optional
+from pydantic import BaseModel, Field, ConfigDict, field_serializer
+from datetime import datetime, date, time
+from typing import List
 
 # Base Schemas
 class RoomBase(BaseModel):
@@ -16,7 +16,12 @@ class MovieBase(BaseModel):
     poster: str = Field(..., example="https://example.com/matrix.jpg")
 
 class ScheduleBase(BaseModel):
-    start_time: datetime = Field(..., example="2025-08-15T10:00:00")
+    show_date: date = Field(..., example="2025-08-15")
+    start_time: time = Field(..., example="18:00")
+
+    @field_serializer('start_time')
+    def serialize_start_time(self, start_time: time) -> str:
+        return start_time.strftime('%H:%M')
 
 class BookingBase(BaseModel):
     row: int = Field(..., example=5)
@@ -33,6 +38,9 @@ class ScheduleCreate(ScheduleBase):
     movie_id: int = Field(..., example=1)
     room_id: int = Field(..., example=1)
 
+class ScheduleCreateInRoom(ScheduleBase):
+    movie_id: int = Field(..., example=1)
+
 class BookingCreate(BookingBase):
     schedule_id: int = Field(..., example=1)
 
@@ -45,7 +53,6 @@ class Movie(MovieBase):
 class Schedule(ScheduleBase):
     id: int = Field(..., example=1)
     room_id: int = Field(..., example=1)
-    # movie_id: int = Field(..., example=1)
     movie: Movie
     
     model_config = ConfigDict(from_attributes=True)

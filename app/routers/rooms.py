@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Path
 from sqlalchemy.orm import Session
 from .. import schemas, models
 from ..database import get_db
@@ -13,7 +13,7 @@ router = APIRouter(
     "/",
     response_model=list[schemas.Room],
     summary="Get all rooms",
-    description="Retrieve a list of all cinema rooms and their details."
+    description="Retrieve a list of all cinema rooms and their details. This endpoint provides a complete overview of all available rooms."
 )
 def get_all_rooms(db: Session = Depends(get_db)):
     rooms = db.query(models.Room).all()
@@ -24,9 +24,12 @@ def get_all_rooms(db: Session = Depends(get_db)):
     "/{room_id}",
     response_model=schemas.Room,
     summary="Get a single room",
-    description="Retrieve a single cinema room by its unique ID."
+    description="Retrieve a single cinema room by its unique ID. Returns a 404 error if the room is not found."
 )
-def get_room(room_id: int, db: Session = Depends(get_db)):
+def get_room(
+    room_id: int = Path(..., description="The unique ID of the room to retrieve."),
+    db: Session = Depends(get_db)
+):
     room = db.query(models.Room).filter(models.Room.id == room_id).first()
     if not room:
         raise HTTPException(
@@ -41,7 +44,7 @@ def get_room(room_id: int, db: Session = Depends(get_db)):
     response_model=schemas.Room,
     status_code=status.HTTP_201_CREATED,
     summary="Create a new room",
-    description="Creates a new cinema room with a unique name and seating dimensions."
+    description="Creates a new cinema room with a unique name and seating dimensions. A conflict error is returned if a room with the same name already exists."
 )
 def create_room(room: schemas.RoomCreate, db: Session = Depends(get_db)):
     # Check if a room with the same name already exists
@@ -63,9 +66,13 @@ def create_room(room: schemas.RoomCreate, db: Session = Depends(get_db)):
     "/{room_id}",
     response_model=schemas.Room,
     summary="Update a room",
-    description="Updates an existing room's details, such as name and seating capacity."
+    description="Updates an existing room's details, such as name and seating capacity. An update is only possible if the room does not have any existing schedules."
 )
-def update_room(room_id: int, room: schemas.RoomCreate, db: Session = Depends(get_db)):
+def update_room(
+    room: schemas.RoomCreate,
+    room_id: int = Path(..., description="The unique ID of the room to update."),
+    db: Session = Depends(get_db)
+):
     db_room = db.query(models.Room).filter(models.Room.id == room_id).first()
     if not db_room:
         raise HTTPException(
@@ -92,9 +99,12 @@ def update_room(room_id: int, room: schemas.RoomCreate, db: Session = Depends(ge
     "/{room_id}",
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Delete a room",
-    description="Deletes a room by its ID, but only if it has no existing schedules."
+    description="Deletes a room by its ID. This operation is only permitted if the room has no existing schedules to prevent data integrity issues."
 )
-def delete_room(room_id: int, db: Session = Depends(get_db)):
+def delete_room(
+    room_id: int = Path(..., description="The unique ID of the room to delete."),
+    db: Session = Depends(get_db)
+):
     db_room = db.query(models.Room).filter(models.Room.id == room_id).first()
     if not db_room:
         raise HTTPException(
@@ -119,7 +129,7 @@ def delete_room(room_id: int, db: Session = Depends(get_db)):
     "/movies/",
     response_model=list[schemas.Movie],
     summary="Get all movies",
-    description="Retrieve a list of all movies in the database."
+    description="Retrieve a list of all movies in the database, including their details and poster URLs."
 )
 def get_all_movies(db: Session = Depends(get_db)):
     movies = db.query(models.Movie).all()
@@ -130,9 +140,12 @@ def get_all_movies(db: Session = Depends(get_db)):
     "/movies/{movie_id}",
     response_model=schemas.Movie,
     summary="Get a single movie",
-    description="Retrieve a single movie by its unique ID."
+    description="Retrieve a single movie by its unique ID. Returns a 404 error if the movie is not found."
 )
-def get_movie(movie_id: int, db: Session = Depends(get_db)):
+def get_movie(
+    movie_id: int = Path(..., description="The unique ID of the movie to retrieve."),
+    db: Session = Depends(get_db)
+):
     movie = db.query(models.Movie).filter(models.Movie.id == movie_id).first()
     if not movie:
         raise HTTPException(
@@ -147,7 +160,7 @@ def get_movie(movie_id: int, db: Session = Depends(get_db)):
     response_model=schemas.Movie,
     status_code=status.HTTP_201_CREATED,
     summary="Create a new movie",
-    description="Creates a new movie with a unique title and a poster URL."
+    description="Creates a new movie with a unique title and a poster URL. A conflict error is returned if a movie with the same title already exists."
 )
 def create_movie(movie: schemas.MovieCreate, db: Session = Depends(get_db)):
     # Check if a movie with the same title already exists
@@ -169,9 +182,13 @@ def create_movie(movie: schemas.MovieCreate, db: Session = Depends(get_db)):
     "/movies/{movie_id}",
     response_model=schemas.Movie,
     summary="Update a movie",
-    description="Updates an existing movie's details."
+    description="Updates an existing movie's details. An update is only permitted if the movie has no existing schedules."
 )
-def update_movie(movie_id: int, movie: schemas.MovieCreate, db: Session = Depends(get_db)):
+def update_movie(
+    movie: schemas.MovieCreate,
+    movie_id: int = Path(..., description="The unique ID of the movie to update."),
+    db: Session = Depends(get_db)
+):
     db_movie = db.query(models.Movie).filter(models.Movie.id == movie_id).first()
     if not db_movie:
         raise HTTPException(
@@ -198,9 +215,12 @@ def update_movie(movie_id: int, movie: schemas.MovieCreate, db: Session = Depend
     "/movies/{movie_id}",
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Delete a movie",
-    description="Deletes a movie by its ID, but only if it has no existing schedules."
+    description="Deletes a movie by its ID. This operation is only permitted if the movie has no existing schedules to prevent data integrity issues."
 )
-def delete_movie(movie_id: int, db: Session = Depends(get_db)):
+def delete_movie(
+    movie_id: int = Path(..., description="The unique ID of the movie to delete."),
+    db: Session = Depends(get_db)
+):
     db_movie = db.query(models.Movie).filter(models.Movie.id == movie_id).first()
     if not db_movie:
         raise HTTPException(
@@ -226,9 +246,13 @@ def delete_movie(movie_id: int, db: Session = Depends(get_db)):
     response_model=schemas.Schedule,
     status_code=status.HTTP_201_CREATED,
     summary="Create a new schedule",
-    description="Creates a new movie schedule for a specific room and time."
+    description="Creates a new movie schedule for a specific room and time. Validates that the room and movie exist and that no other schedule conflicts with the new one."
 )
-def create_schedule_for_room(room_id: int, schedule: schemas.ScheduleCreate, db: Session = Depends(get_db)):
+def create_schedule_for_room(
+    schedule: schemas.ScheduleCreate,
+    room_id: int = Path(..., description="The unique ID of the room for which the schedule will be created."),
+    db: Session = Depends(get_db)
+):
     # Check if the room exists
     room = db.query(models.Room).filter(models.Room.id == room_id).first()
     if not room:
@@ -268,8 +292,11 @@ def create_schedule_for_room(room_id: int, schedule: schemas.ScheduleCreate, db:
     "/{room_id}/schedules/",
     response_model=list[schemas.Schedule],
     summary="Get schedules for a room",
-    description="Retrieve a list of all schedules for a given room."
+    description="Retrieve a list of all schedules for a given room. Returns an empty list if no schedules are found."
 )
-def get_schedules_for_room(room_id: int, db: Session = Depends(get_db)):
+def get_schedules_for_room(
+    room_id: int = Path(..., description="The unique ID of the room to retrieve schedules for."),
+    db: Session = Depends(get_db)
+):
     schedules = db.query(models.Schedule).filter(models.Schedule.room_id == room_id).all()
     return schedules

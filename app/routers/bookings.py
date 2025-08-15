@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Path
 from sqlalchemy.orm import Session
 from datetime import datetime
 from .. import schemas, models
@@ -13,9 +13,12 @@ router = APIRouter(
 @router.get(
     "/{schedule_id}/seats",
     summary="Get seating availability",
-    description="Retrieve the seating layout for a given schedule, showing which seats are available or booked."
+    description="Retrieve the seating layout for a given schedule, showing which seats are available or booked. This endpoint provides a detailed map of the room, including row and seat numbers, and their current booking status."
 )
-def get_available_seats(schedule_id: int, db: Session = Depends(get_db)):
+def get_available_seats(
+    schedule_id: int = Path(..., description="The unique ID of the schedule to check."),
+    db: Session = Depends(get_db)
+):
     schedule = db.query(models.Schedule).filter(models.Schedule.id == schedule_id).first()
     if not schedule:
         raise HTTPException(status_code=404, detail="Schedule not found")
@@ -55,7 +58,7 @@ def get_available_seats(schedule_id: int, db: Session = Depends(get_db)):
     response_model=schemas.Booking,
     status_code=status.HTTP_201_CREATED,
     summary="Create a new booking",
-    description="Books a specific seat for a movie schedule. Validates that the seat is available and exists within the room's dimensions."
+    description="Books a specific seat for a movie schedule. Validates that the seat is available, exists within the room's dimensions, and that the schedule is valid."
 )
 def create_booking(booking: schemas.BookingCreate, db: Session = Depends(get_db)):
     schedule = db.query(models.Schedule).filter(models.Schedule.id == booking.schedule_id).first()

@@ -1,10 +1,13 @@
-from pydantic import BaseModel, Field
+# app/schemas.py
+
+from __future__ import annotations
+from pydantic import BaseModel, Field, ConfigDict
 from datetime import datetime
-from typing import List
+from typing import List, Optional
 
 # Base Schemas
 class RoomBase(BaseModel):
-    name: str = Field(..., example="Room 1")
+    name: str = Field(..., example="Screen 1")
     rows: int = Field(..., gt=0, example=10)
     seats_per_row: int = Field(..., gt=0, example=15)
 
@@ -28,36 +31,34 @@ class MovieCreate(MovieBase):
 
 class ScheduleCreate(ScheduleBase):
     movie_id: int = Field(..., example=1)
+    room_id: int = Field(..., example=1)
 
 class BookingCreate(BookingBase):
     schedule_id: int = Field(..., example=1)
 
 # Schemas for Reading objects (responses)
-class Room(RoomBase):
-    id: int = Field(..., example=1)
-
-    class Config:
-        from_attributes = True
-
 class Movie(MovieBase):
     id: int = Field(..., example=1)
+    
+    model_config = ConfigDict(from_attributes=True)
 
-    class Config:
-        from_attributes = True
+class Schedule(ScheduleBase):
+    id: int = Field(..., example=1)
+    room_id: int = Field(..., example=1)
+    movie_id: int = Field(..., example=1)
+    movie: Movie
+    
+    model_config = ConfigDict(from_attributes=True)
+
+class Room(RoomBase):
+    id: int = Field(..., example=1)
+    schedules: List[Schedule] = []
+    
+    model_config = ConfigDict(from_attributes=True)
 
 class Booking(BookingBase):
     id: int = Field(..., example=1)
     schedule_id: int = Field(..., example=1)
     timestamp: datetime = Field(..., example="2025-08-15T10:30:00")
     
-    class Config:
-        from_attributes = True
-
-class Schedule(ScheduleBase):
-    id: int = Field(..., example=1)
-    room_id: int = Field(..., example=1)
-    movie_id: int = Field(..., example=1)
-    
-    class Config:
-        from_attributes = True
-        
+    model_config = ConfigDict(from_attributes=True)

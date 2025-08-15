@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Path
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from .. import schemas, models
 from ..database import get_db
 
@@ -24,13 +24,13 @@ def get_all_rooms(db: Session = Depends(get_db)):
     "/{room_id}",
     response_model=schemas.Room,
     summary="Get a single room",
-    description="Retrieve a single cinema room by its unique ID. Returns a 404 error if the room is not found."
+    description="Retrieve a single cinema room by its unique ID. The response includes a list of all schedules for that room, with movie details."
 )
 def get_room(
     room_id: int = Path(..., description="The unique ID of the room to retrieve."),
     db: Session = Depends(get_db)
 ):
-    room = db.query(models.Room).filter(models.Room.id == room_id).first()
+    room = db.query(models.Room).options(joinedload(models.Room.schedules).joinedload(models.Schedule.movie)).filter(models.Room.id == room_id).first()
     if not room:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
